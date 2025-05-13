@@ -1,0 +1,410 @@
+
+I need to create a single HTML file for a scientific calculator mini project. It should have a modern, visually appealing design with inline CSS and JavaScript. The calculator must include basic arithmetic operations plus scientific functions (e.g., sin, cos, tan, log, sqrt, exponentiation). It must be mobile responsive and fit within 600px height and 350px width with no scroll. The UI should be easy to use on mobile browsers with big, touch-friendly buttons. The JavaScript must be stable and production-ready. I will use a clean layout with a display area at the top and buttons in a grid below.
+
+
+`scientific_calculator.html`
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Scientific Calculator</title>
+<style>
+  /* Reset and base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #2c3e50, #4ca1af);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding: 10px;
+  }
+  .calculator {
+    width: 350px;
+    max-width: 100%;
+    background: #1e272e;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+  .display {
+    background: #485460;
+    color: #f1f2f6;
+    font-size: 2.5rem;
+    padding: 15px 20px;
+    border-radius: 15px 15px 0 0;
+    text-align: right;
+    min-height: 70px;
+    word-wrap: break-word;
+  }
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    padding: 20px;
+  }
+  button {
+    background: #718093;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 1.2rem;
+    padding: 15px 0;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    box-shadow: 0 3px #4b5766;
+  }
+  button:active {
+    box-shadow: 0 0 #4b5766;
+    transform: translateY(3px);
+  }
+  button.function {
+    background: #57606f;
+  }
+  button.operator {
+    background: #ffa502;
+    color: #2f3542;
+    font-weight: 700;
+  }
+  button.equals {
+    background: #70a1ff;
+    grid-column: span 2;
+    color: #2f3542;
+    font-weight: 700;
+  }
+  button.zero {
+    grid-column: span 2;
+  }
+  /* Responsive: fit height max 600px */
+  @media (max-height: 600px) {
+    .calculator {
+      height: 100%;
+      overflow-y: auto;
+      padding-bottom: 10px;
+    }
+    .buttons {
+      gap: 6px;
+      padding: 10px;
+    }
+    button {
+      font-size: 1rem;
+      padding: 10px 0;
+    }
+    .display {
+      font-size: 2rem;
+      min-height: 60px;
+      padding: 10px 15px;
+    }
+  }
+
+</style>
+</head>
+<body>
+  <div class="calculator" role="application" aria-label="Scientific Calculator">
+    <div id="display" class="display" aria-live="polite" aria-atomic="true">0</div>
+    <div class="buttons">
+      <!-- Row 1 -->
+      <button class="function" data-action="clear" aria-label="Clear">C</button>
+      <button class="function" data-action="backspace" aria-label="Backspace">⌫</button>
+      <button class="function" data-action="toggle-sign" aria-label="Toggle Sign">±</button>
+      <button class="operator" data-value="/">÷</button>
+      <button class="operator" data-value="*">×</button>
+      <button class="function" data-action="sqrt" aria-label="Square Root">√</button>
+
+      <!-- Row 2 -->
+      <button class="function" data-action="sin" aria-label="Sine">sin</button>
+      <button class="function" data-action="cos" aria-label="Cosine">cos</button>
+      <button class="function" data-action="tan" aria-label="Tangent">tan</button>
+      <button class="operator" data-value="-">−</button>
+      <button class="function" data-action="pow" aria-label="Power">xʸ</button>
+      <button class="function" data-action="log" aria-label="Logarithm">log</button>
+
+      <!-- Row 3 -->
+      <button data-value="7">7</button>
+      <button data-value="8">8</button>
+      <button data-value="9">9</button>
+      <button class="operator" data-value="+">+</button>
+      <button class="function" data-action="ln" aria-label="Natural Logarithm">ln</button>
+      <button class="function" data-action="exp" aria-label="Exponent">eˣ</button>
+
+      <!-- Row 4 -->
+      <button data-value="4">4</button>
+      <button data-value="5">5</button>
+      <button data-value="6">6</button>
+      <button class="operator" data-value="%">%</button>
+      <button class="function" data-action="pi" aria-label="Pi">π</button>
+      <button class="function" data-action="e" aria-label="Euler's Number">e</button>
+
+      <!-- Row 5 -->
+      <button data-value="1">1</button>
+      <button data-value="2">2</button>
+      <button data-value="3">3</button>
+      <button data-value="(">(</button>
+      <button data-value=")">)</button>
+      <button class="operator equals" data-action="equals" aria-label="Equals">=</button>
+
+      <!-- Row 6 -->
+      <button class="zero" data-value="0">0</button>
+      <button data-value=".">.</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const display = document.getElementById('display');
+      let currentExpression = '';
+      let lastInput = '';
+      let resetNext = false;
+
+      // Math constants and functions mapping
+      const constants = {
+        'π': Math.PI,
+        'e': Math.E
+      };
+
+      const functionsMap = {
+        'sin': (x) => Math.sin(toRadians(x)),
+        'cos': (x) => Math.cos(toRadians(x)),
+        'tan': (x) => Math.tan(toRadians(x)),
+        'log': (x) => Math.log10(x),
+        'ln': (x) => Math.log(x),
+        'sqrt': (x) => Math.sqrt(x),
+        'exp': (x) => Math.exp(x),
+        'pow': (x, y) => Math.pow(x, y),
+      };
+
+      // Converts degrees to radians
+      function toRadians(deg) {
+        return deg * Math.PI / 180;
+      }
+
+      // Secure evaluation function using Function constructor
+      function safeEval(expr) {
+        // Replace constants
+        expr = expr.replace(/π/g, '(' + Math.PI + ')');
+        expr = expr.replace(/e/g, '(' + Math.E + ')');
+
+        // Replace percent operator (%) by dividing by 100
+        expr = expr.replace(/(\d+)%/g, '($1/100)');
+
+        // Block any invalid characters
+        if (/[^0-9\.\+\-\*\/\^\%\(\)eπ\s]/.test(expr)) {
+          throw Error('Invalid characters in expression');
+        }
+
+        // Replace ^ for power with **
+        expr = expr.replace(/\^/g, '**');
+
+        // Evaluate using Function - safe within this controlled input
+        return Function('"use strict";return (' + expr + ')')();
+      }
+
+      // Updates the display
+      function updateDisplay(val) {
+        display.textContent = val;
+      }
+
+      // Insert value into expression display
+      function insertValue(val) {
+        if (resetNext) {
+          currentExpression = '';
+          resetNext = false;
+        }
+        currentExpression += val;
+        updateDisplay(currentExpression);
+        lastInput = val;
+      }
+
+      // Clear all input
+      function clearAll() {
+        currentExpression = '';
+        updateDisplay('0');
+      }
+
+      // Backspace last character
+      function backspace() {
+        if (resetNext) {
+          clearAll();
+          resetNext = false;
+          return;
+        }
+        currentExpression = currentExpression.slice(0, -1);
+        updateDisplay(currentExpression || '0');
+      }
+
+      // Toggle plus/minus sign of the last number entered
+      function toggleSign() {
+        if (resetNext) {
+          resetNext = false;
+          return;
+        }
+        // Use regex to find last number and change sign
+        const match = currentExpression.match(/(-?\d+\.?\d*)$/);
+        if (match) {
+          const num = match[1];
+          const start = match.index;
+          const toggled = num.startsWith('-') ? num.slice(1) : '-' + num;
+          currentExpression = currentExpression.slice(0, start) + toggled;
+          updateDisplay(currentExpression);
+        }
+      }
+
+      // Apply a scientific function like sin, cos, tan, log etc.
+      function applyFunction(fnName) {
+        if (resetNext) {
+          resetNext = false;
+        }
+        try {
+          // Special case: pow expects two inputs separated by ^ or by pressing the pow button then entering exponent
+          if (fnName === 'pow') {
+            currentExpression += '^';
+            updateDisplay(currentExpression);
+            return;
+          }
+          if (fnName === 'pi') {
+            insertValue('π');
+            return;
+          }
+          if (fnName === 'e') {
+            insertValue('e');
+            return;
+          }
+          // For functions that need an argument, wrap last number or expression in func()
+          // Find last number or parenthesis expression
+          let lastOperandIdx = currentExpression.length - 1;
+          let openParens = 0;
+          for (let i = lastOperandIdx; i >= 0; i--) {
+            const char = currentExpression[i];
+            if (char === ')') openParens++;
+            else if (char === '(') openParens--;
+            if ((/[+\-*\/%^]/.test(char) && openParens === 0) || i === 0) {
+              lastOperandIdx = i === 0 ? 0 : i + 1;
+              break;
+            }
+          }
+          const arg = currentExpression.slice(lastOperandIdx);
+          const before = currentExpression.slice(0, lastOperandIdx);
+          const wrapped = fnName + '(' + arg + ')';
+          currentExpression = before + wrapped;
+          updateDisplay(currentExpression);
+        } catch(e) {
+          updateDisplay('Error');
+          currentExpression = '';
+        }
+      }
+
+      // Evaluate the current expression
+      function evaluateExpression() {
+        if (!currentExpression) return;
+        try {
+          // Replace function calls in expression with real evaluations
+          // For this, recursively replace function calls with evaluated values
+          let expr = currentExpression;
+
+          expr = expr.replace(/sin\(([^)]+)\)/g, (_, val) => functionsMap.sin(safeEval(val)));
+          expr = expr.replace(/cos\(([^)]+)\)/g, (_, val) => functionsMap.cos(safeEval(val)));
+          expr = expr.replace(/tan\(([^)]+)\)/g, (_, val) => functionsMap.tan(safeEval(val)));
+          expr = expr.replace(/log\(([^)]+)\)/g, (_, val) => functionsMap.log(safeEval(val)));
+          expr = expr.replace(/ln\(([^)]+)\)/g, (_, val) => functionsMap.ln(safeEval(val)));
+          expr = expr.replace(/sqrt\(([^)]+)\)/g, (_, val) => functionsMap.sqrt(safeEval(val)));
+          expr = expr.replace(/exp\(([^)]+)\)/g, (_, val) => functionsMap.exp(safeEval(val)));
+
+          // Evaluate the final expression with safeEval, supporting power ^ operator replacement in safeEval
+          let result = safeEval(expr);
+
+          // Handle floating point precision issues - round to max 10 decimals
+          if (typeof result === 'number') {
+            result = +result.toFixed(10);
+          }
+
+          updateDisplay(result);
+          currentExpression = result.toString();
+          resetNext = true;
+        } catch (e) {
+          updateDisplay('Error');
+          currentExpression = '';
+          resetNext = true;
+        }
+      }
+
+      // Handle button clicks
+      function buttonClicked(e) {
+        const target = e.target;
+        if (!target.matches('button')) return;
+
+        if (target.dataset.value) {
+          insertValue(target.dataset.value);
+        } else if (target.dataset.action) {
+          const action = target.dataset.action;
+          switch(action) {
+            case 'clear':
+              clearAll();
+              break;
+            case 'backspace':
+              backspace();
+              break;
+            case 'toggle-sign':
+              toggleSign();
+              break;
+            case 'equals':
+              evaluateExpression();
+              break;
+            case 'sin':
+            case 'cos':
+            case 'tan':
+            case 'log':
+            case 'ln':
+            case 'sqrt':
+            case 'exp':
+            case 'pow':
+            case 'pi':
+            case 'e':
+              applyFunction(action);
+              break;
+            default:
+              break;
+          }
+        }
+      }
+
+      // Keyboard support - optional but useful
+      function keyboardSupport(e) {
+        // Map key input to button presses
+        const allowedKeys = "0123456789.+-*/%^()";
+        if (allowedKeys.indexOf(e.key) !== -1) {
+          // For power ^, let it be processed by insertValue
+          insertValue(e.key);
+          e.preventDefault();
+        } else if (e.key === 'Enter') {
+          evaluateExpression();
+          e.preventDefault();
+        } else if (e.key === 'Backspace') {
+          backspace();
+          e.preventDefault();
+        } else if (e.key.toLowerCase() === 'c') {
+          clearAll();
+          e.preventDefault();
+        }
+        // Could extend for scientific functions with keys if needed
+      }
+
+      // Attach event listeners
+      document.querySelector('.buttons').addEventListener('click', buttonClicked);
+      window.addEventListener('keydown', keyboardSupport);
+
+      // Initialize display
+      updateDisplay('0');
+    })();
+  </script>
+</body>
+</html>
+
+```
